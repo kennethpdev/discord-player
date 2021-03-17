@@ -1,5 +1,6 @@
 const ytdl = require('discord-ytdl-core')
 const Discord = require('discord.js')
+const fetch = require('node-fetch')
 const ytsr = require('youtube-sr').default
 const spotify = require('spotify-url-info')
 const soundcloud = require('soundcloud-scraper')
@@ -1136,7 +1137,11 @@ class Player extends EventEmitter {
             }
 
             let newStream
-            if (!queue.playing.soundcloud && !queue.playing.arbitrary) {
+            let customStream = queue.playing.customStream || false;
+            if (customStream) {
+                const result = await fetch(queue.playing.url);
+                newStream = result.body;
+            } else if (!queue.playing.soundcloud && !queue.playing.arbitrary) {
                 newStream = ytdl(queue.playing.url, {
                     quality: this.options.quality === 'low' ? 'lowestaudio' : 'highestaudio',
                     filter: 'audioonly',
@@ -1158,7 +1163,7 @@ class Player extends EventEmitter {
                 if (queue.stream) queue.stream.destroy()
                 queue.stream = newStream
                 queue.voiceConnection.play(newStream, {
-                    type: 'opus',
+                    type: customStream ? 'unknown' : 'opus',
                     bitrate: 'auto'
                 })
                 if (seekTime) {
