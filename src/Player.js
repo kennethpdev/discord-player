@@ -1,6 +1,8 @@
 const ytdl = require('discord-ytdl-core')
 const Discord = require('discord.js')
 const fetch = require('node-fetch')
+const http = require('http')
+const https = require('https')
 const ytsr = require('youtube-sr').default
 const spotify = require('spotify-url-info')
 const soundcloud = require('soundcloud-scraper')
@@ -1139,7 +1141,17 @@ class Player extends EventEmitter {
             let newStream
             let customStream = queue.playing.customStream || false;
             if (customStream) {
-                const result = await fetch(queue.playing.url);
+                const httpAgent = new http.Agent({ keepAlive: true });
+                const httpsAgent = new https.Agent({ keepAlive: true });
+                const result = await fetch(queue.playing.url, {
+                    agent: (_parsedURL) => {
+                        if (_parsedURL.protocol === 'http:') {
+                            return httpAgent;
+                        } else {
+                            return httpsAgent;
+                        }
+                    }
+                });
                 newStream = result.body;
             } else if (!queue.playing.soundcloud && !queue.playing.arbitrary) {
                 newStream = ytdl(queue.playing.url, {
